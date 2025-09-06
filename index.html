@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Apka zamówień – PWA</title>
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    :root{--bg:#f7f7fb;--card:#ffffff;--ink:#1f2430;--muted:#6b7280;--accent:#4f46e5;--accent-2:#22c55e;--border:#e5e7eb;--shadow:0 10px 20px rgba(0,0,0,.08);--radius:16px}
+    *{box-sizing:border-box;-webkit-tap-highlight-color: transparent;}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;line-height:1.35}
+    header{position:sticky;top:0;z-index:20;background:#fff;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:16px clamp(12px,2vw,24px);border-bottom:1px solid var(--border)}
+    .brand{font-weight:800}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.6em;font-weight:700;border:2px solid transparent;cursor:pointer;padding:14px 18px;border-radius:14px;font-size:18px;background:var(--accent);color:#fff;box-shadow:var(--shadow);user-select:none}
+    .btn.secondary{background:#fff;color:var(--ink);border-color:var(--border)}
+    .btn.good{background:var(--accent-2)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .row{display:grid;gap:16px;grid-template-columns:1.2fr 1fr;padding:16px clamp(12px,2vw,24px) 24px;max-width:1400px;margin:0 auto}
+    @media (max-width:980px){.row{grid-template-columns:1fr;padding-bottom:100px}.side.right{order:-1}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .pad{padding:16px}
+    .title{font-weight:800;margin:0 0 8px 0}
+    .muted{color:var(--muted)}
+    .fruit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px}
+    .fruit{aspect-ratio:1/1;background:linear-gradient(180deg,#fff,#fafafa);border:2px solid var(--border);border-radius:22px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:52px;cursor:pointer;user-select:none;position:relative;transition:transform .08s ease,border-color .15s ease,box-shadow .15s ease;padding:8px}
+    .fruit span{display:block;font-size:14px;margin-top:6px}
+    .fruit.selected{border-color:var(--accent);box-shadow:0 0 0 4px rgba(79,70,229,.12) inset}
+    .fruit .icon{width:70%;height:70%}
+    .badge{position:absolute;top:8px;right:8px;min-width:28px;height:28px;padding:0 6px;background:var(--accent);color:#fff;border-radius:999px;font-weight:800;display:none;align-items:center;justify-content:center;font-size:14px;box-shadow:var(--shadow)}
+    .fruit.selected .badge{display:flex}
+    .choices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px}
+    .choice{background:linear-gradient(180deg,#fff,#fafafa);border:2px solid var(--border);border-radius:18px;padding:14px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;font-size:44px;cursor:pointer;user-select:none}
+    .choice .label{font-size:15px;font-weight:800}
+    .choice.active{border-color:var(--accent);box-shadow:0 0 0 4px rgba(79,70,229,.12) inset}
+    .section{margin-top:16px;border-top:1px dashed var(--border);padding-top:12px}
+    .pilllist{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .pill{background:#f3f4f6;border:1px solid var(--border);border-radius:999px;padding:10px 14px;font-weight:700;font-size:15px;cursor:pointer;user-select:none}
+    .pill.active{background:#e0e7ff;border-color:#c7d2fe}
+    .size-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+    .size{border:2px solid var(--border);background:#fff;border-radius:14px;padding:12px;text-align:center;cursor:pointer;user-select:none}
+    .size.active{border-color:var(--accent);box-shadow:0 0 0 4px rgba(79,70,229,.12) inset}
+    .size .subl{font-size:12px;color:var(--muted)}
+    .footer-actions{position:sticky;bottom:0;z-index:30;display:flex;gap:12px;justify-content:flex-end;align-items:center;padding:12px;background:#fff;border-top:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius)}
+    .modal{position:fixed;inset:0;background:rgba(17,24,39,.4);display:none;align-items:center;justify-content:center;padding:16px;z-index:1000}
+    .modal.show{display:flex}
+    .modal .box{width:min(760px,100%);background:#fff;border-radius:20px;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .modal .content{padding:16px}
+    .summary-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+    .summary-list li{display:flex;justify-content:space-between;background:#f9fafb;border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+    .divider{border-top:1px dashed var(--border);margin:10px 0}
+    @media print{header,.row,.modal .box header,.modal .box .actions{display:none !important}.print-receipt{display:block !important}}
+    .print-receipt{display:none}
+    .receipt{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;width:280px;margin:0 auto;color:#000}
+    .receipt .center{text-align:center}
+    .receipt h2{margin:0 0 6px 0;font-size:18px}
+    .receipt .line{display:flex;justify-content:space-between}
+    .receipt hr{border:none;border-top:1px dashed #000;margin:8px 0}
+    .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:999px;box-shadow:var(--shadow);font-weight:700;opacity:0;transition:opacity .2s, transform .2s;z-index:1200}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">🍧 Lody &amp; Co – Zamówienia</div>
+    <div style="display:flex; gap:10px; align-items:center">
+      <button id="newOrderBtn" class="btn" onclick="newOrderFromAnywhere()">🆕 Nowe zamówienie</button>
+      <button id="doneBtn" class="btn good" onclick="showSummary()" disabled>✅ Gotowe</button>
+    </div>
+  </header>
+
+  <main class="row">
+    <!-- Left: fruits grid -->
+    <section class="card side left" aria-label="Wybór owoców">
+      <div class="pad">
+        <h2 class="title">🍓 Wybierz owoce (stuknij)</h2>
+        <div class="muted">9 kolorowych kafelków. Stuknij, aby dodać/odjąć składnik.</div>
+      </div>
+      <div class="fruit-grid" id="fruitGrid">
+        <!-- Fruits (static) -->
+        <div class="fruit" data-key="truskawka" role="button" onclick="toggleFruit('truskawka')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#fca5a5"/><text x="50" y="58" text-anchor="middle" font-size="48">🍓</text></svg>
+          <span>Truskawka</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="banan" role="button" onclick="toggleFruit('banan')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#fde68a"/><text x="50" y="58" text-anchor="middle" font-size="48">🍌</text></svg>
+          <span>Banan</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="ananas" role="button" onclick="toggleFruit('ananas')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#fcd34d"/><text x="50" y="58" text-anchor="middle" font-size="48">🍍</text></svg>
+          <span>Ananas</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="jablko" role="button" onclick="toggleFruit('jablko')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#f87171"/><text x="50" y="58" text-anchor="middle" font-size="48">🍎</text></svg>
+          <span>Jabłko</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="pomarancza" role="button" onclick="toggleFruit('pomarancza')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#fb923c"/><text x="50" y="58" text-anchor="middle" font-size="48">🍊</text></svg>
+          <span>Pomarańcza</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="winogrona" role="button" onclick="toggleFruit('winogrona')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#c4b5fd"/><text x="50" y="58" text-anchor="middle" font-size="48">🍇</text></svg>
+          <span>Winogrona</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="arbuz" role="button" onclick="toggleFruit('arbuz')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#6ee7b7"/><text x="50" y="58" text-anchor="middle" font-size="48">🍉</text></svg>
+          <span>Arbuz</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="mango" role="button" onclick="toggleFruit('mango')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#fde68a"/><text x="50" y="58" text-anchor="middle" font-size="48">🥭</text></svg>
+          <span>Mango</span><div class="badge">1</div></div>
+        <div class="fruit" data-key="jagody" role="button" onclick="toggleFruit('jagody')">
+          <svg class="icon" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#a5b4fc"/><text x="50" y="58" text-anchor="middle" font-size="48">🫐</text></svg>
+          <span>Jagody</span><div class="badge">1</div></div>
+      </div>
+    </section>
+
+    <!-- Right -->
+    <section class="card side right" aria-label="Wybór produktu i składników">
+      <div class="pad">
+        <h2 class="title">🛒 Co zamawiamy?</h2>
+        <div class="choices" id="productChoices">
+          <div class="choice" data-type="lody" role="button" onclick="setProduct('lody')"><div>🍦</div><div class="label">Lody w wafelku</div></div>
+          <div class="choice" data-type="bubble" role="button" onclick="setProduct('bubble')"><div>🧋</div><div class="label">Bubble Tea</div></div>
+          <div class="choice" data-type="koktajl" role="button" onclick="setProduct('koktajl')"><div>🍹</div><div class="label">Koktajl</div></div>
+        </div>
+
+        <div class="section" id="sizeSection" style="display:none">
+          <h3 class="title" style="font-size:18px">🥤 Rozmiar kubka</h3>
+          <div class="size-grid" id="sizeGrid">
+            <div class="size" data-key="S" role="button" onclick="setSize('S')"><div style="font-weight:800">Mały (300 ml)</div><div class="subl">bez dopłaty</div></div>
+            <div class="size" data-key="M" role="button" onclick="setSize('M')"><div style="font-weight:800">Średni (400 ml)</div><div class="subl">+2,00 zł</div></div>
+            <div class="size" data-key="L" role="button" onclick="setSize('L')"><div style="font-weight:800">Duży (500 ml)</div><div class="subl">+4,00 zł</div></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="title" style="font-size:18px">🥣 Składniki (owoce)</h3>
+          <div class="pilllist" id="pickedList"></div>
+        </div>
+
+        <div class="section">
+          <h3 class="title" style="font-size:18px">✨ Posypki</h3>
+          <div class="pilllist" id="toppingsList">
+            <div class="pill" data-key="posypka-czekolada" onclick="toggleTopping('posypka-czekolada')">Czekolada 🍫 (+1,50 zł)</div>
+            <div class="pill" data-key="posypka-orzechy" onclick="toggleTopping('posypka-orzechy')">Orzechy 🥜 (+1,50 zł)</div>
+            <div class="pill" data-key="posypka-kolorowa" onclick="toggleTopping('posypka-kolorowa')">Kolorowa 🌈 (+1,20 zł)</div>
+            <div class="pill" data-key="posypka-biszkopt" onclick="toggleTopping('posypka-biszkopt')">Ciastko 🍪 (+1,50 zł)</div>
+            <div class="pill" data-key="posypka-miod" onclick="toggleTopping('posypka-miod')">Miód 🍯 (+1,20 zł)</div>
+            <div class="pill" data-key="posypka-kokos" onclick="toggleTopping('posypka-kokos')">Wiórki kokosowe 🥥 (+1,50 zł)</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="title" style="font-size:18px">💵 Cena</h3>
+          <ul class="summary-list" id="priceList" style="margin-top:8px"></ul>
+          <div class="divider"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-weight:900; font-size:18px">
+            <span>Suma</span>
+            <span id="total">0,00 zł</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button id="resetBtn" class="btn secondary" onclick="clearFromAnywhere()" disabled>🗑️ Wyczyść</button>
+        <button id="doneBtnBottom" class="btn good" onclick="showSummary()" disabled>✅ Gotowe</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal" id="summaryModal" role="dialog" aria-modal="true" aria-labelledby="summaryTitle">
+    <div class="box">
+      <div class="pad"><h3 id="summaryTitle" class="title">🧾 Podsumowanie zamówienia</h3></div>
+      <div class="content"><div id="summaryBody"></div></div>
+      <div class="footer-actions actions" style="justify-content:space-between">
+        <div style="display:flex; gap:8px">
+          <button class="btn secondary" onclick="closeModalOnly()">Zamknij</button>
+          <button class="btn" onclick="printReceipt()">🖨️ Drukuj</button>
+        </div>
+        <div style="display:flex; gap:8px">
+          <button class="btn secondary" onclick="clearFromAnywhere()">🗑️ Wyczyść</button>
+          <button class="btn good" onclick="newOrderFromAnywhere()">🆕 Nowe zamówienie</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Print -->
+  <div class="print-receipt">
+    <div class="receipt" id="receipt">
+      <div class="center">
+        <h2>🍧 Lody &amp; Co</h2>
+        <div class="muted">ul. Przykładowa 1, 44-200 Miasto</div>
+        <div class="muted">NIP: 000-000-00-00</div>
+      </div>
+      <hr>
+      <div class="line"><span>Data</span><span id="r-date"></span></div>
+      <div class="line"><span>Nr zamówienia</span><span id="r-id"></span></div>
+      <hr>
+      <div id="r-items"></div>
+      <hr>
+      <div class="line" style="font-weight:800"><span>Razem</span><span id="r-total"></span></div>
+      <hr>
+      <div class="center">Dziękujemy! 🥳</div>
+    </div>
+  </div>
+
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+  <script>
+    function PLN(n){ return n.toFixed(2).replace('.',',') + ' zł'; }
+    function $(id){ return document.getElementById(id); }
+    function toast(msg){
+      var t=$('toast'); t.textContent=msg; t.className='toast show';
+      setTimeout(function(){ t.className='toast'; }, 1200);
+    }
+
+    var PRODUCTS = {
+      lody:   {label:'Lody w wafelku', icon:'🍦', base:10.00, usesCup:false},
+      bubble: {label:'Bubble Tea', icon:'🧋', base:14.00, usesCup:true},
+      koktajl:{label:'Koktajl', icon:'🍹', base:12.00, usesCup:true}
+    };
+    var CUP_SIZES = [
+      {key:'S', label:'Mały', ml:300, delta:0.00},
+      {key:'M', label:'Średni', ml:400, delta:2.00},
+      {key:'L', label:'Duży', ml:500, delta:4.00}
+    ];
+    var FRUITS = [
+      {key:'truskawka', label:'Truskawka', price:2.00, emoji:'🍓'},
+      {key:'banan', label:'Banan', price:2.00, emoji:'🍌'},
+      {key:'ananas', label:'Ananas', price:2.50, emoji:'🍍'},
+      {key:'jablko', label:'Jabłko', price:1.50, emoji:'🍎'},
+      {key:'pomarancza', label:'Pomarańcza', price:2.00, emoji:'🍊'},
+      {key:'winogrona', label:'Winogrona', price:2.00, emoji:'🍇'},
+      {key:'arbuz', label:'Arbuz', price:2.50, emoji:'🍉'},
+      {key:'mango', label:'Mango', price:2.50, emoji:'🥭'},
+      {key:'jagody', label:'Jagody', price:2.50, emoji:'🫐'}
+    ];
+    var TOPPINGS = [
+      {key:'posypka-czekolada', label:'Czekolada 🍫', price:1.50},
+      {key:'posypka-orzechy', label:'Orzechy 🥜', price:1.50},
+      {key:'posypka-kolorowa', label:'Kolorowa 🌈', price:1.20},
+      {key:'posypka-biszkopt', label:'Ciastko 🍪', price:1.50},
+      {key:'posypka-miod', label:'Miód 🍯', price:1.20},
+      {key:'posypka-kokos', label:'Wiórki kokosowe 🥥', price:1.50}
+    ];
+
+    var current = { active:false, product:null, size:null, fruits:{}, toppings:{} };
+    var els = {
+      newOrderBtn: $('newOrderBtn'),
+      doneBtn: $('doneBtn'),
+      doneBtnBottom: $('doneBtnBottom'),
+      resetBtn: $('resetBtn'),
+      productChoices: $('productChoices'),
+      pickedList: $('pickedList'),
+      priceList: $('priceList'),
+      total: $('total'),
+      modal: $('summaryModal'),
+      summaryBody: $('summaryBody'),
+      sizeSection: $('sizeSection'),
+      sizeGrid: $('sizeGrid'),
+      toppingsList: $('toppingsList'),
+      fruitGrid: $('fruitGrid')
+    };
+
+    function isModalOpen(){ return els.modal.classList.contains('show'); }
+    function closeModalOnly(){ els.modal.classList.remove('show'); }
+
+    function startOrder(){ current.active = true; updateButtons(); }
+
+    window.newOrderFromAnywhere = function(){
+      resetOrder(true); startOrder(); if(isModalOpen()) closeModalOnly(); toast('Nowe zamówienie');
+    };
+    window.clearFromAnywhere = function(){
+      resetOrder(false); if(isModalOpen()) closeModalOnly(); toast('Wyczyszczono');
+    };
+
+    window.setProduct = function(type){
+      startOrder();
+      current.product = type;
+      if(!PRODUCTS[type].usesCup){ current.size = null; }
+      updateProductUI();
+      updateSizesVisibility();
+      updatePricing();
+      updateButtons();
+    };
+    window.setSize = function(key){
+      current.size = key;
+      updateSizesUI();
+      updatePricing();
+      updateButtons();
+    };
+    window.toggleFruit = function(key){
+      startOrder();
+      current.fruits[key] = current.fruits[key] ? 0 : 1;
+      updateFruitsUI(); updatePricing();
+    };
+    window.toggleTopping = function(key){
+      startOrder();
+      current.toppings[key] = current.toppings[key] ? 0 : 1;
+      updateToppingsUI(); updatePricing();
+    };
+
+    function updateProductUI(){
+      var nodes = els.productChoices.children;
+      for(var i=0;i<nodes.length;i++){
+        var n = nodes[i];
+        n.classList.toggle('active', n.getAttribute('data-type') === current.product);
+      }
+    }
+    function updateSizesVisibility(){
+      if(current.product && PRODUCTS[current.product].usesCup){
+        els.sizeSection.style.display = '';
+      }else{
+        els.sizeSection.style.display = 'none';
+      }
+      updateSizesUI();
+    }
+    function updateSizesUI(){
+      var nodes = els.sizeGrid.children;
+      for(var i=0;i<nodes.length;i++){
+        var n = nodes[i];
+        var key = n.getAttribute('data-key');
+        n.classList.toggle('active', key === current.size);
+      }
+    }
+    function updateFruitsUI(){
+      var nodes = els.fruitGrid.children;
+      for(var i=0;i<nodes.length;i++){
+        var n = nodes[i];
+        var key = n.getAttribute('data-key');
+        n.classList.toggle('selected', !!current.fruits[key]);
+      }
+      els.pickedList.innerHTML = '';
+      for(var k in current.fruits){
+        if(current.fruits[k]){
+          var f; for(var j=0;j<FRUITS.length;j++){ if(FRUITS[j].key===k){f=FRUITS[j];break;} }
+          if(f){
+            var pill = document.createElement('div');
+            pill.className='pill';
+            pill.textContent = f.emoji + ' ' + f.label;
+            els.pickedList.appendChild(pill);
+          }
+        }
+      }
+    }
+    function updateToppingsUI(){
+      var nodes = els.toppingsList.children;
+      for(var i=0;i<nodes.length;i++){
+        var n = nodes[i];
+        var key = n.getAttribute('data-key');
+        n.classList.toggle('active', !!current.toppings[key]);
+      }
+    }
+
+    function addPriceRow(label, price){
+      var li = document.createElement('li');
+      li.innerHTML = '<span>'+label+'</span><span>'+PLN(price)+'</span>';
+      els.priceList.appendChild(li);
+    }
+
+    function updatePricing(){
+      els.priceList.innerHTML = '';
+      var sum = 0;
+      if(current.product){
+        var p = PRODUCTS[current.product];
+        sum += p.base; addPriceRow(p.icon+' '+p.label, p.base);
+        if(p.usesCup && current.size){
+          var s; for(var i=0;i<CUP_SIZES.length;i++){ if(CUP_SIZES[i].key===current.size){s=CUP_SIZES[i];break;} }
+          if(s){ sum += s.delta; addPriceRow('Rozmiar: '+s.label+' ('+s.ml+' ml)', s.delta); }
+        }
+      }
+      for(var k in current.fruits){
+        if(current.fruits[k]){
+          var f; for(var i=0;i<FRUITS.length;i++){ if(FRUITS[i].key===k){f=FRUITS[i];break;} }
+          if(f){ sum += f.price; addPriceRow('Owoc: '+f.label, f.price); }
+        }
+      }
+      for(var t in current.toppings){
+        if(current.toppings[t]){
+          var top; for(var i=0;i<TOPPINGS.length;i++){ if(TOPPINGS[i].key===t){top=TOPPINGS[i];break;} }
+          if(top){ sum += top.price; addPriceRow('Posypka: '+top.label, top.price); }
+        }
+      }
+      els.total.textContent = PLN(sum);
+      updateButtons();
+    }
+
+    function updateButtons(){
+      var needSize = current.product && PRODUCTS[current.product].usesCup;
+      var haveSize = !needSize || !!current.size;
+      var haveSomething = false, v;
+      for(v in current.fruits){ if(current.fruits[v]){ haveSomething=true; break; } }
+      if(!haveSomething){ for(v in current.toppings){ if(current.toppings[v]){ haveSomething=true; break; } } }
+      var canFinish = current.active && current.product && haveSize && haveSomething;
+      els.doneBtn.disabled = !canFinish;
+      if(els.doneBtnBottom) els.doneBtnBottom.disabled = !canFinish;
+      els.resetBtn.disabled = !current.active;
+    }
+
+    window.showSummary = function(){
+      if(!current.product){ return; }
+      var items = [];
+      var prod = PRODUCTS[current.product];
+      items.push({label: prod.icon + ' ' + prod.label, price: prod.base});
+      if(prod.usesCup && current.size){
+        var s; for(var i=0;i<CUP_SIZES.length;i++){ if(CUP_SIZES[i].key===current.size){s=CUP_SIZES[i];break;} }
+        if(s){ items.push({label:'Rozmiar: ' + s.label + ' ('+s.ml+' ml)', price: s.delta}); }
+      }
+      for(var k in current.fruits){
+        if(current.fruits[k]){
+          var f; for(var i=0;i<FRUITS.length;i++){ if(FRUITS[i].key===k){f=FRUITS[i];break;} }
+          items.push({label:'Owoc: ' + f.label, price: f.price});
+        }
+      }
+      for(var t in current.toppings){
+        if(current.toppings[t]){
+          var top; for(var i=0;i<TOPPINGS.length;i++){ if(TOPPINGS[i].key===t){top=TOPPINGS[i];break;} }
+          items.push({label:'Posypka: ' + top.label, price: top.price});
+        }
+      }
+      var total=0; for(var i=0;i<items.length;i++){ total+=items[i].price; }
+      els.summaryBody.innerHTML='';
+      var list = document.createElement('ul'); list.className='summary-list';
+      for(var i=0;i<items.length;i++){
+        var li = document.createElement('li');
+        li.innerHTML = '<span>'+items[i].label+'</span><span>'+PLN(items[i].price)+'</span>';
+        list.appendChild(li);
+      }
+      els.summaryBody.appendChild(list);
+      var div = document.createElement('div'); div.className='divider'; els.summaryBody.appendChild(div);
+      var totalRow = document.createElement('div'); totalRow.style.cssText='display:flex;justify-content:space-between;font-weight:900;font-size:18px;margin-top:10px;'; totalRow.innerHTML='<span>Razem</span><span>'+PLN(total)+'</span>';
+      els.summaryBody.appendChild(totalRow);
+      prepareReceipt(items, total);
+      els.modal.classList.add('show');
+    };
+
+    function prepareReceipt(items, total){
+      var now = new Date();
+      var id = 'Z' + Math.random().toString(36).slice(2,8).toUpperCase();
+      document.getElementById('r-date').textContent = now.toLocaleString('pl-PL');
+      document.getElementById('r-id').textContent = id;
+      var rItems = document.getElementById('r-items');
+      rItems.innerHTML = '';
+      for(var i=0;i<items.length;i++){
+        var line = document.createElement('div'); line.className = 'line';
+        line.innerHTML = '<span>'+items[i].label+'</span><span>'+PLN(items[i].price)+'</span>';
+        rItems.appendChild(line);
+      }
+      document.getElementById('r-total').textContent = PLN(total);
+    }
+
+    window.printReceipt = function(){ window.print(); };
+
+    (function init(){
+      updateProductUI(); updateSizesVisibility(); updateFruitsUI(); updateToppingsUI(); updatePricing(); updateButtons();
+    })();
+  </script>
+</body>
+</html>
